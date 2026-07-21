@@ -66,6 +66,59 @@ const OpenBorPlayer = ({ game, onExit }) => {
     };
   }, [game]);
 
+  // Gamepad Shortcuts Polling
+  useEffect(() => {
+    let animationFrameId;
+    let lastShortcutTime = 0;
+    
+    const simulateStart = () => {
+      const canvas = document.getElementById('canvas');
+      if (canvas) {
+        const event = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true });
+        canvas.dispatchEvent(event);
+        setTimeout(() => {
+          const upEvent = new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true });
+          canvas.dispatchEvent(upEvent);
+        }, 100);
+      }
+    };
+
+    const pollGamepads = () => {
+      const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+      const now = Date.now();
+      
+      if (now - lastShortcutTime > 1000) { // 1 second cooldown
+        for (let i = 0; i < gamepads.length; i++) {
+          const gp = gamepads[i];
+          if (gp) {
+            // L3 (10) + R3 (11) -> Virtual Start
+            if (gp.buttons[10]?.pressed && gp.buttons[11]?.pressed) {
+              simulateStart();
+              lastShortcutTime = now;
+              break;
+            }
+            
+            // L1 (4) + R1 (5) + L2 (6) + R2 (7) -> Exit Game
+            if (gp.buttons[4]?.pressed && gp.buttons[5]?.pressed && 
+                gp.buttons[6]?.pressed && gp.buttons[7]?.pressed) {
+              handleExit();
+              lastShortcutTime = now;
+              break;
+            }
+          }
+        }
+      }
+      
+      animationFrameId = requestAnimationFrame(pollGamepads);
+    };
+    
+    animationFrameId = requestAnimationFrame(pollGamepads);
+    
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
   const handleExit = () => {
     // Reload page to clear WASM memory completely as OpenBOR isn't designed to be unmounted
     window.location.reload();
