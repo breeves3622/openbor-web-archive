@@ -15,15 +15,26 @@ const OpenBorPlayer = ({ game, onExit }) => {
         const contentPath = '/openbor/';
         window.myGame = {
           canvas: document.getElementById('canvas'),
+          LoadingOverlay: document.getElementById('loading-overlay'),
+          overlay: document.getElementById('overlay'),
+          buttonsOverlay: document.getElementById('buttons-overlay'),
           contentPath: contentPath,
+          baseWidth: 320,
+          baseHeight: 240,
+          assetType: 'zip',
           paths: {
             assetsPaths: [], // We handle downloading ourselves to bypass ZIP requirement
             'OpenBOR.zip': contentPath + 'OpenBOR.zip',
             'game.css': contentPath + 'game.css',
             'main.js': contentPath + 'main.js',
             'mobile.js': contentPath + 'mobile.js',
+            'buttons.zip': contentPath + 'buttons.zip',
+            'fflate.min.js': contentPath + 'fflate.min.js',
+            'nipplejs.min.js': contentPath + 'nipplejs.min.js',
           }
         };
+        window.myGame.canvas.width = window.myGame.baseWidth;
+        window.myGame.canvas.height = window.myGame.baseHeight;
 
         // Step 2: Inject main.js to load the WASM environment
         // We need to wait for Module and FS to be available
