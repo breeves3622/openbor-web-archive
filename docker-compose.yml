@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  openbor-web:
+    build: .
+    container_name: openbor-web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      - NODE_ENV=production

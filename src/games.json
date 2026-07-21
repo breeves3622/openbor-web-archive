@@ -1,0 +1,23 @@
+[
+  {
+    "id": "beats-of-rage",
+    "title": "Beats of Rage Original",
+    "description": "The classic game that started the OpenBOR engine.",
+    "coverUrl": "https://upload.wikimedia.org/wikipedia/en/e/e0/Beats_of_Rage_cover.jpg",
+    "pakUrl": "https://archive.org/download/openbor-pak-collection/Beats%20of%20Rage%20Original%20%5Bv.3.0%20Build%204086%5D.pak"
+  },
+  {
+    "id": "final-fight-gold",
+    "title": "Final Fight Gold Champion Edition",
+    "description": "A fantastic fan tribute to the classic arcade brawler.",
+    "coverUrl": "https://archive.org/download/openbor-pak-collection/openbor-pak-collection.jpg",
+    "pakUrl": "https://archive.org/download/openbor-pak-collection/Final%20Fight%20Gold%20Champion%20Edition%20%5Bv.3.0%20Build%204086%5D.pak"
+  },
+  {
+    "id": "double-dragon-advance",
+    "title": "Double Dragon Advance",
+    "description": "Relive the legendary beat 'em up experience.",
+    "coverUrl": "https://upload.wikimedia.org/wikipedia/en/2/25/Double_Dragon_Advance_Coverart.png",
+    "pakUrl": "https://archive.org/download/openbor-pak-collection/Double%20Dragon%20Advance%20%5Bv.3.0%20Build%203366%5D.pak"
+  }
+]
