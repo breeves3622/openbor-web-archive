@@ -14,6 +14,7 @@ const OpenBorPlayer = ({ game, onExit }) => {
         // Step 1: Initialize window.myGame for the OpenBOR loader
         const contentPath = '/openbor/';
         window.myGame = {
+          canvas: document.getElementById('canvas'),
           contentPath: contentPath,
           paths: {
             assetsPaths: [], // We handle downloading ourselves to bypass ZIP requirement

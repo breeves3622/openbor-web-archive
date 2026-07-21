@@ -6,8 +6,9 @@ export const downloadAndMountPak = async (pakUrl, progressCallback) => {
   try {
     progressCallback({ status: 'fetching', message: 'Downloading game data from Archive.org...', progress: 0 });
     
-    // Fetch the file with progress tracking using a CORS proxy
-    const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(pakUrl)}`;
+    // Extract the path from archive.org url to append to our proxy
+    const urlObj = new URL(pakUrl);
+    const proxiedUrl = `/proxy/archive${urlObj.pathname}${urlObj.search}`;
     const response = await fetch(proxiedUrl);
     
     if (!response.ok) {

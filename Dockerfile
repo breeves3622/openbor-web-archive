@@ -11,15 +11,21 @@ RUN npm install
 COPY . ./
 RUN npm run build
 
-# Stage 2: Serve the application using Nginx
-FROM nginx:alpine
+# Stage 2: Serve the application using Node Express backend
+FROM node:22-alpine
 
-# Copy the custom Nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+WORKDIR /app
+
+# Install production dependencies for the Express server
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 
 # Copy the built assets from Stage 1
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=build /app/dist ./dist
+
+# Copy the server script
+COPY server.js ./
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["node", "server.js"]
