@@ -92,6 +92,7 @@ const OpenBorPlayer = ({ game, onExit }) => {
         )}
         
         {/* OpenBOR engine expects these IDs */}
+        <div id="loading-overlay" style={{ display: 'none' }}>Loading...</div>
         <canvas id="canvas" tabIndex="1" style={{ display: loadState.status === 'ready' ? 'block' : 'none' }}></canvas>
         <div id="overlay"></div>
         <div id="buttons-overlay"></div>
