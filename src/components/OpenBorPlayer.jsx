@@ -25,12 +25,12 @@ const OpenBorPlayer = ({ game, onExit }) => {
           paths: {
             assetsPaths: [], // We handle downloading ourselves to bypass ZIP requirement
             'OpenBOR.zip': contentPath + 'OpenBOR.zip',
-            'game.css': contentPath + 'game.css',
-            'main.js': contentPath + 'main.js',
-            'mobile.js': contentPath + 'mobile.js',
+            'game.css': contentPath + 'game.css?v=' + Date.now(),
+            'main.js': contentPath + 'main.js?v=' + Date.now(),
+            'mobile.js': contentPath + 'mobile.js?v=' + Date.now(),
             'buttons.zip': contentPath + 'buttons.zip',
-            'fflate.min.js': contentPath + 'fflate.min.js',
-            'nipplejs.min.js': contentPath + 'nipplejs.min.js',
+            'fflate.min.js': contentPath + 'fflate.min.js?v=' + Date.now(),
+            'nipplejs.min.js': contentPath + 'nipplejs.min.js?v=' + Date.now(),
           }
         };
         window.myGame.canvas.width = window.myGame.baseWidth;
@@ -45,7 +45,7 @@ const OpenBorPlayer = ({ game, onExit }) => {
 
         // Step 3: Inject main.js to load the WASM environment
         const script = document.createElement('script');
-        script.src = contentPath + 'main.js';
+        script.src = window.myGame.paths['main.js'];
         script.async = true;
         document.body.appendChild(script);
 
