@@ -11,6 +11,12 @@ const OpenBorPlayer = ({ game, onExit }) => {
 
     const initEngine = async () => {
       try {
+        // Step 0: Hide Gamepads from Emscripten so it defaults to Keyboard for Player 1
+        if (!window.originalGetGamepads && navigator.getGamepads) {
+          window.originalGetGamepads = navigator.getGamepads.bind(navigator);
+          navigator.getGamepads = () => [];
+        }
+
         // Step 1: Initialize window.myGame for the OpenBOR loader
         const contentPath = '/openbor/';
         window.myGame = {
@@ -58,8 +64,10 @@ const OpenBorPlayer = ({ game, onExit }) => {
 
     return () => {
       isMounted = false;
-      // Clean up scripts and global variables if possible, though OpenBOR WASM might require a full reload
-      // to completely clean up. For a simple SPA, forcing a reload on exit is safer.
+      if (window.originalGetGamepads) {
+        navigator.getGamepads = window.originalGetGamepads;
+        delete window.originalGetGamepads;
+      }
       if (window.Module && window.Module.pauseMainLoop) {
          window.Module.pauseMainLoop();
       }
@@ -71,31 +79,104 @@ const OpenBorPlayer = ({ game, onExit }) => {
     let animationFrameId;
     let lastShortcutTime = 0;
     
-    const simulateStart = () => {
+    // Store previous button states to detect keydown/keyup
+    // We track: 0(A), 1(B), 2(X), 3(Y)
+    const prevButtonState = { 0: false, 1: false, 2: false, 3: false };
+    
+    // Map gamepad buttons to the keyboard keys OpenBOR uses
+    // A -> Jump(D), X -> Attack(A), Y -> Special(S), B -> Star(F)
+    const buttonToKeyMap = {
+      0: { key: 'd', code: 'KeyD', keyCode: 68 }, // A = Jump
+      1: { key: 'f', code: 'KeyF', keyCode: 70 }, // B = Star
+      2: { key: 'a', code: 'KeyA', keyCode: 65 }, // X = Attack
+      3: { key: 's', code: 'KeyS', keyCode: 83 }  // Y = Special
+    };
+
+    const triggerKey = (keyConfig, isDown) => {
       const canvas = document.getElementById('canvas');
       if (canvas) {
-        const event = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true });
+        const eventType = isDown ? 'keydown' : 'keyup';
+        const event = new KeyboardEvent(eventType, { 
+          key: keyConfig.key, 
+          code: keyConfig.code, 
+          bubbles: true,
+          cancelable: true
+        });
+        // Emscripten strictly requires keyCode and which, but they are read-only on KeyboardEvent
+        Object.defineProperty(event, 'keyCode', { get: () => keyConfig.keyCode });
+        Object.defineProperty(event, 'which', { get: () => keyConfig.keyCode });
         canvas.dispatchEvent(event);
-        setTimeout(() => {
-          const upEvent = new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true });
-          canvas.dispatchEvent(upEvent);
-        }, 100);
       }
     };
 
+    const simulateStart = () => {
+      triggerKey({ key: 'Enter', code: 'Enter', keyCode: 13 }, true);
+      setTimeout(() => {
+        triggerKey({ key: 'Enter', code: 'Enter', keyCode: 13 }, false);
+      }, 100);
+    };
+
     const pollGamepads = () => {
-      const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+      // Use originalGetGamepads since we overrode navigator.getGamepads for Emscripten
+      const getPads = window.originalGetGamepads || (navigator.getGamepads ? navigator.getGamepads.bind(navigator) : () => []);
+      const gamepads = getPads();
       const now = Date.now();
       
-      if (now - lastShortcutTime > 1000) { // 1 second cooldown
-        for (let i = 0; i < gamepads.length; i++) {
-          const gp = gamepads[i];
-          if (gp) {
+      for (let i = 0; i < gamepads.length; i++) {
+        const gp = gamepads[i];
+        if (gp) {
+          
+          // Map D-pad and Action Buttons
+          // 0(A), 1(B), 2(X), 3(Y)
+          // 12(Up), 13(Down), 14(Left), 15(Right)
+          const allMappedButtons = [0, 1, 2, 3, 12, 13, 14, 15];
+          
+          // Extend button map for D-pad
+          buttonToKeyMap[12] = { key: 'ArrowUp', code: 'ArrowUp', keyCode: 38 };
+          buttonToKeyMap[13] = { key: 'ArrowDown', code: 'ArrowDown', keyCode: 40 };
+          buttonToKeyMap[14] = { key: 'ArrowLeft', code: 'ArrowLeft', keyCode: 37 };
+          buttonToKeyMap[15] = { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39 };
+
+          allMappedButtons.forEach(btnIndex => {
+            const isPressed = gp.buttons[btnIndex]?.pressed;
+            if (isPressed && !prevButtonState[btnIndex]) {
+              prevButtonState[btnIndex] = true;
+              triggerKey(buttonToKeyMap[btnIndex], true);
+            } else if (!isPressed && prevButtonState[btnIndex]) {
+              prevButtonState[btnIndex] = false;
+              triggerKey(buttonToKeyMap[btnIndex], false);
+            }
+          });
+
+          // Left Analog Stick to D-Pad mapping
+          if (gp.axes.length >= 2) {
+            const xAxis = gp.axes[0];
+            const yAxis = gp.axes[1];
+            const deadzone = 0.4;
+            
+            // Left (37) / Right (39)
+            const isLeft = xAxis < -deadzone;
+            const isRight = xAxis > deadzone;
+            if (isLeft && !prevButtonState['axisLeft']) { prevButtonState['axisLeft'] = true; triggerKey({key: 'ArrowLeft', code: 'ArrowLeft', keyCode: 37}, true); }
+            if (!isLeft && prevButtonState['axisLeft']) { prevButtonState['axisLeft'] = false; triggerKey({key: 'ArrowLeft', code: 'ArrowLeft', keyCode: 37}, false); }
+            if (isRight && !prevButtonState['axisRight']) { prevButtonState['axisRight'] = true; triggerKey({key: 'ArrowRight', code: 'ArrowRight', keyCode: 39}, true); }
+            if (!isRight && prevButtonState['axisRight']) { prevButtonState['axisRight'] = false; triggerKey({key: 'ArrowRight', code: 'ArrowRight', keyCode: 39}, false); }
+
+            // Up (38) / Down (40)
+            const isUp = yAxis < -deadzone;
+            const isDown = yAxis > deadzone;
+            if (isUp && !prevButtonState['axisUp']) { prevButtonState['axisUp'] = true; triggerKey({key: 'ArrowUp', code: 'ArrowUp', keyCode: 38}, true); }
+            if (!isUp && prevButtonState['axisUp']) { prevButtonState['axisUp'] = false; triggerKey({key: 'ArrowUp', code: 'ArrowUp', keyCode: 38}, false); }
+            if (isDown && !prevButtonState['axisDown']) { prevButtonState['axisDown'] = true; triggerKey({key: 'ArrowDown', code: 'ArrowDown', keyCode: 40}, true); }
+            if (!isDown && prevButtonState['axisDown']) { prevButtonState['axisDown'] = false; triggerKey({key: 'ArrowDown', code: 'ArrowDown', keyCode: 40}, false); }
+          }
+
+          // Shortcuts (with cooldown)
+          if (now - lastShortcutTime > 1000) {
             // L3 (10) + R3 (11) -> Virtual Start
             if (gp.buttons[10]?.pressed && gp.buttons[11]?.pressed) {
               simulateStart();
               lastShortcutTime = now;
-              break;
             }
             
             // L1 (4) + R1 (5) + L2 (6) + R2 (7) -> Exit Game
@@ -103,9 +184,11 @@ const OpenBorPlayer = ({ game, onExit }) => {
                 gp.buttons[6]?.pressed && gp.buttons[7]?.pressed) {
               handleExit();
               lastShortcutTime = now;
-              break;
             }
           }
+          
+          // We only process the first connected gamepad for these global shortcuts
+          break;
         }
       }
       
